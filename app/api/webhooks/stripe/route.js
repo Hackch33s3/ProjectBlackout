@@ -2,14 +2,14 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
-// Initialize Supabase
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+// The URL of your Python engine on Render
+const RENDER_ENGINE_URL = process.env.RENDER_ENGINE_URL;
 
 export async function POST(req) {
   const sig = req.headers.get('stripe-signature');
@@ -17,45 +17,137 @@ export async function POST(req) {
 
   let event;
   try {
-    // Verify the webhook actually came from Stripe
     event = stripe.webhooks.constructEvent(
       body,
       sig,
       process.env.STRIPE_WEBHOOK_SECRET
     );
   } catch (err) {
-    console.error(`Webhook Error: ${err.message}`);
-    return NextResponse.json({ error: 'Webhook signature failed' }, { status: 400 });
+    console.error(`Webhook Signature Error: ${err.message}`);
+    return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
   }
 
-  // Handle the successful purchase event
+  // Handle initial checkout
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
     const customerEmail = session.customer_details.email;
-    
+    const stripeCustomerId = session.customer;
+
     try {
-      // Insert the new client into the Supabase database
-      const { data, error } = await supabase
-        .from('clients') // Make sure this matches your table name in Supabase
+      const { error } = await supabase
+        .from('clients')
         .insert([
-          { 
-            email: customerEmail, 
-            stripe_customer_id: session.customer,
-            status: 'PENDING_ONBOARDING' 
+          {
+            email: customerEmail,
+            stripe_customer_id: stripeCustomerId,
+            status: 'PENDING_ONBOARDING'
           }
         ]);
 
-      if (error) {
-        console.error('Supabase error:', error);
-      } else {
-        console.log(`Successfully added ${customerEmail} to database.`);
-      }
-
+      if (error) console.error('Supabase Insert Error:', error);
+      else console.log(`[+] Client created: ${customerEmail}`);
     } catch (error) {
-      console.error('Database error:', error);
+      console.error('Database Error:', error);
     }
   }
 
-  // Always return a 200 OK status so Stripe knows we received it
+  // Handle successful monthly payment - ACTIVATE THE ENGINE
+  if (event.type === 'invoice.paid') {
+    const invoice = event.data.object;
+    const stripeCustomerId = invoice.customer;
+
+    try {
+      // Update client status to active
+      const { data: client, error: updateError } = await supabase
+        .from('clients')
+        .update({ status: 'ACTIVE_MONITORING' })
+        .eq('stripe_customer_id', stripeCustomerId)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('Status update error:', updateError);
+      } else {
+        console.log(`[+] Client activated: ${client.email}`);
+        
+        // Tell the Python engine to start scanning this client
+        if (RENDER_ENGINE_URL && client.id) {
+          try {
+            await fetch(`${RENDER_ENGINE_URL}/start-scan`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ clientId: client.id })
+            });
+            console.log(`[+] Scan triggered for client: ${client.id}`);
+          } catch (fetchError) {
+            console.error('Failed to trigger Python engine:', fetchError);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Invoice paid handler error:', error);
+    }
+  }
+
+  // Handle failed payment - SUSPEND THE ENGINE
+  if (event.type === 'invoice.payment_failed') {
+    const invoice = event.data.object;
+    const stripeCustomerId = invoice.customer;
+
+    try {
+      const { data: client, error } = await supabase
+        .from('clients')
+        .update({ status: 'SUSPENDED' })
+        .eq('stripe_customer_id', stripeCustomerId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Suspension error:', error);
+      } else {
+        console.log(`[!] Client suspended: ${client.email}`);
+        
+        // Tell the Python engine to stop scanning this client
+        if (RENDER_ENGINE_URL && client.id) {
+          try {
+            await fetch(`${RENDER_ENGINE_URL}/stop-scan`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ clientId: client.id })
+            });
+            console.log(`[!] Scan stopped for client: ${client.id}`);
+          } catch (fetchError) {
+            console.error('Failed to stop Python engine:', fetchError);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Payment failed handler error:', error);
+    }
+  }
+
+  // Handle subscription cancellation - CHURN THE CLIENT
+  if (event.type === 'customer.subscription.deleted') {
+    const subscription = event.data.object;
+    const stripeCustomerId = subscription.customer;
+
+    try {
+      const { data: client, error } = await supabase
+        .from('clients')
+        .update({ status: 'CHURNED' })
+        .eq('stripe_customer_id', stripeCustomerId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Churn error:', error);
+      } else {
+        console.log(`[-] Client churned: ${client.email}`);
+      }
+    } catch (error) {
+      console.error('Subscription deleted handler error:', error);
+    }
+  }
+
   return NextResponse.json({ received: true });
 }

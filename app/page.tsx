@@ -12,10 +12,15 @@ export default function Home() {
             Automatically. Continuously. Relentlessly.
           </p>
           
-          {/* CTA Button */}
-          <button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition-all transform hover:scale-105 shadow-lg">
-            Start Monitoring - $29/month
-          </button>
+                    {/* CTA Button */}
+          <form action="/api/checkout" method="POST" className="inline-block">
+            <button 
+              type="submit"
+              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition-all transform hover:scale-105 shadow-lg cursor-pointer"
+            >
+              Start Monitoring - $29/month
+            </button>
+          </form>
           
           <p className="text-sm text-slate-400 mt-4">
             Cancel anytime. 30-day money-back guarantee.

@@ -39,3 +39,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# python (in case PBE/ is reintroduced)
+/__pycache__
+**/__pycache__
+*.pyc
+*.pyo
+
+# archived paths (kept out of repo; the live copies live in ../ProjectBlackout_archive)
+/PBE
+/Rollbacks
+/.agents
+/prism.schema
+/project-blackout-web

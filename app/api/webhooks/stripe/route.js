@@ -2,17 +2,16 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
-
-// Updated: Use ENGINE_URL and ENGINE_API_KEY
-const ENGINE_URL = process.env.ENGINE_URL;
-const ENGINE_API_KEY = process.env.ENGINE_API_KEY;
-
 export async function POST(req) {
+  // Initialize clients inside the handler (not at module level)
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+  const supabase = createClient(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+  const ENGINE_URL = process.env.ENGINE_URL;
+  const ENGINE_API_KEY = process.env.ENGINE_API_KEY;
+
   const sig = req.headers.get('stripe-signature');
   const body = await req.text();
 
@@ -21,7 +20,7 @@ export async function POST(req) {
     event = stripe.webhooks.constructEvent(
       body,
       sig,
-      process.env.STRIPE_WEBHOOK_SECRET
+      process.env.STRIPE_WEBHOOK_SECRET!
     );
   } catch (err) {
     console.error(`Webhook Signature Error: ${err.message}`);
@@ -58,7 +57,6 @@ export async function POST(req) {
     const stripeCustomerId = invoice.customer;
 
     try {
-      // Update client status to active
       const { data: client, error: updateError } = await supabase
         .from('clients')
         .update({ status: 'ACTIVE_MONITORING' })
@@ -71,7 +69,6 @@ export async function POST(req) {
       } else {
         console.log(`[+] Client activated: ${client.email}`);
         
-        // Fetch client's PII from Supabase
         const { data: clientData, error: fetchError } = await supabase
           .from('clients')
           .select('full_name, past_city')
@@ -83,14 +80,13 @@ export async function POST(req) {
           return NextResponse.json({ received: true });
         }
 
-        // Tell the Python engine to start scanning this client
         if (ENGINE_URL && ENGINE_API_KEY && client.id) {
           try {
             const response = await fetch(`${ENGINE_URL}/start-scan`, {
               method: 'POST',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${ENGINE_API_KEY}` // Added authentication
+                'Authorization': `Bearer ${ENGINE_API_KEY}`
               },
               body: JSON.stringify({ 
                 clientId: client.id,
@@ -132,14 +128,13 @@ export async function POST(req) {
       } else {
         console.log(`[!] Client suspended: ${client.email}`);
         
-        // Tell the Python engine to stop scanning this client
         if (ENGINE_URL && ENGINE_API_KEY && client.id) {
           try {
             const response = await fetch(`${ENGINE_URL}/stop-scan`, {
               method: 'POST',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${ENGINE_API_KEY}` // Added authentication
+                'Authorization': `Bearer ${ENGINE_API_KEY}`
               },
               body: JSON.stringify({ clientId: client.id })
             });

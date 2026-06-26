@@ -8,8 +8,9 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// The URL of your Python engine on Render
-const RENDER_ENGINE_URL = process.env.RENDER_ENGINE_URL;
+// Updated: Use ENGINE_URL and ENGINE_API_KEY
+const ENGINE_URL = process.env.ENGINE_URL;
+const ENGINE_API_KEY = process.env.ENGINE_API_KEY;
 
 export async function POST(req) {
   const sig = req.headers.get('stripe-signature');
@@ -70,15 +71,39 @@ export async function POST(req) {
       } else {
         console.log(`[+] Client activated: ${client.email}`);
         
+        // Fetch client's PII from Supabase
+        const { data: clientData, error: fetchError } = await supabase
+          .from('clients')
+          .select('full_name, past_city')
+          .eq('id', client.id)
+          .single();
+
+        if (fetchError || !clientData) {
+          console.error('Failed to fetch client PII:', fetchError);
+          return NextResponse.json({ received: true });
+        }
+
         // Tell the Python engine to start scanning this client
-        if (RENDER_ENGINE_URL && client.id) {
+        if (ENGINE_URL && ENGINE_API_KEY && client.id) {
           try {
-            await fetch(`${RENDER_ENGINE_URL}/start-scan`, {
+            const response = await fetch(`${ENGINE_URL}/start-scan`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ clientId: client.id })
+              headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${ENGINE_API_KEY}` // Added authentication
+              },
+              body: JSON.stringify({ 
+                clientId: client.id,
+                full_name: clientData.full_name || 'Unknown',
+                past_city: clientData.past_city || 'Unknown'
+              })
             });
-            console.log(`[+] Scan triggered for client: ${client.id}`);
+
+            if (!response.ok) {
+              console.error(`Engine returned ${response.status}:`, await response.text());
+            } else {
+              console.log(`[+] Scan triggered for client: ${client.id}`);
+            }
           } catch (fetchError) {
             console.error('Failed to trigger Python engine:', fetchError);
           }
@@ -108,14 +133,22 @@ export async function POST(req) {
         console.log(`[!] Client suspended: ${client.email}`);
         
         // Tell the Python engine to stop scanning this client
-        if (RENDER_ENGINE_URL && client.id) {
+        if (ENGINE_URL && ENGINE_API_KEY && client.id) {
           try {
-            await fetch(`${RENDER_ENGINE_URL}/stop-scan`, {
+            const response = await fetch(`${ENGINE_URL}/stop-scan`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${ENGINE_API_KEY}` // Added authentication
+              },
               body: JSON.stringify({ clientId: client.id })
             });
-            console.log(`[!] Scan stopped for client: ${client.id}`);
+
+            if (!response.ok) {
+              console.error(`Engine returned ${response.status}:`, await response.text());
+            } else {
+              console.log(`[!] Scan stopped for client: ${client.id}`);
+            }
           } catch (fetchError) {
             console.error('Failed to stop Python engine:', fetchError);
           }

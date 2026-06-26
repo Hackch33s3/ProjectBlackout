@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 
-export async function POST(req: Request) {
+export async function POST(req) {
   // Initialize clients inside the handler (not at module level)
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
   const supabase = createClient(

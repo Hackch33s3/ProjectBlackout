@@ -1,0 +1,46 @@
+// schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ClientStatus {
+  PENDING_ONBOARDING
+  SCANNING
+  ACTIVE_MONITORING
+  GHOSTED
+}
+
+enum TargetStatus {
+  PENDING_OPT_OUT
+  OPT_OUT_SUBMITTED
+  VERIFIED_REMOVED
+  FAILED
+}
+
+model Client {
+  id            String      @id @default(uuid())
+  emailHash     String      @unique // Hash of their email for login/recovery
+  piiHash       String      // SHA-256 hash of their raw PII. NEVER store raw PII.
+  status        ClientStatus @default(PENDING_ONBOARDING)
+  stripeCustomerId String?
+  createdAt     DateTime    @default(now())
+  targets       Target[]
+}
+
+model Target {
+  id           String       @id @default(uuid())
+  clientId     String
+  client       Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  brokerName   String       // e.g., "Whitepages", "Spokeo"
+  profileUrl   String       // The exact URL where their data lives
+  status       TargetStatus @default(PENDING_OPT_OUT)
+  lastChecked  DateTime     @default(now())
+  optOutMethod String?      // e.g., "WEB_FORM", "EMAIL_CCPA", "PHYSICAL_MAIL"
+  
+  @@index([clientId])
+}

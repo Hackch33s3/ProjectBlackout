@@ -34,6 +34,6 @@ export async function POST() {
   }
 	catch (err) {
     console.error('Stripe Checkout Error:', err);
-    return NextResponse.json({ error: 'Checkout failed' }, { status: 500 });
+       return NextResponse.json({ error: 'Checkout failed' }, { status: 500 });
   }
 }

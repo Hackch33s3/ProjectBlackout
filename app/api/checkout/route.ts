@@ -30,8 +30,11 @@ export async function POST() {
       cancel_url: `${baseUrl}/cancel`,
     });
 
+       if (!session.url) {
+      return NextResponse.json({ error: 'Checkout URL generation failed' }, { status: 500 });
+    }
+
     return NextResponse.redirect(session.url);
-  }
 	catch (err) {
     console.error('Stripe Checkout Error:', err);
        return NextResponse.json({ error: 'Checkout failed' }, { status: 500 });

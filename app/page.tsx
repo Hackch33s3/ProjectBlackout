@@ -22,7 +22,6 @@ export default function Home() {
 
     if (res.ok) {
       const data = await res.json();
-      // Redirect to the live scan page (we will build this next)
       router.push(`/report/${data.clientId}`);
     } else {
       setLoading(false);
@@ -42,7 +41,6 @@ export default function Home() {
             Find out exactly what they have on you. Free. Instantly.
           </p>
           
-          {/* Lead Capture Form */}
           <form onSubmit={handleSubmit} className="max-w-md mx-auto bg-slate-800/50 backdrop-blur-sm p-8 rounded-xl border border-slate-700 space-y-4 text-left">
             <input
               type="text"
@@ -75,7 +73,9 @@ export default function Home() {
             >
               {loading ? 'Scanning...' : 'Get My Free Exposure Report'}
             </button>
-            <p className="text-xs text-slate-500 text-center">We do not store your data. We only destroy it.</p>
+            <p className="text-xs text-slate-500 text-center">
+              User data is handled under our strict non-retention framework. See how it works <a href="/privacy" className="text-blue-400 hover:underline">HERE</a>.
+            </p>
           </form>
         </div>
       </section>

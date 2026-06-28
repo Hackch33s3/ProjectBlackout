@@ -4,14 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 
 // Minimal row type for the `clients` table. Replace with a generated
 // `Database` type (npx supabase gen types typescript) when you set up codegen.
-type ClientRow = {
-  id?: string;
-  email: string;
-  stripe_customer_id: string | null;
-  status: string;
-  full_name?: string | null;
-  past_city?: string | null;
-};
+
 
 // Lazy getters: building a Next.js app runs the route module during static
 // analysis to introspect it, so env vars may not be set at that point. We

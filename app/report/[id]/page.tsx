@@ -6,7 +6,8 @@ import { useParams } from 'next/navigation';
 export default function ReportPage() {
   const { id } = useParams();
   const [status, setStatus] = useState('SCANNING');
-  const [targets, setTargets] = useState<any[]>([]);
+  interface Target { broker_name: string; profile_url: string; status: string; };
+  const [targets, setTargets] = useState<Target[]>([]);
   const [fullName, setFullName] = useState('');
 
   useEffect(() => {
@@ -69,7 +70,7 @@ export default function ReportPage() {
         <div className="bg-gradient-to-r from-red-900/20 to-slate-800 border border-red-900/50 p-8 rounded-xl text-center">
           <h2 className="text-3xl font-bold mb-4">Erase These Profiles Now.</h2>
           <p className="text-slate-300 mb-8 max-w-2xl mx-auto">
-            For a one-time fee of <strong>$500 CAD</strong>, our engine will force every broker listed above to delete your data. 
+            For <strong>$489 CAD</strong> we will approach these brokers, armed with the tools to and knowledge to force the removal of your data from their servers while you focus on the things that matter. 
             Includes <strong>$28 CAD/month</strong> continuous monitoring to ensure they don't reappear.
           </p>
           <a 

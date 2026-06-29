@@ -10,22 +10,33 @@ export default function Home() {
   const [pastCity, setPastCity] = useState('');
   const [email, setEmail] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    const res = await fetch('/api/audit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fullName, pastCity, email }),
-    });
+    try {
+      const res = await fetch('/api/audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fullName, pastCity, email }),
+      });
 
-    if (res.ok) {
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
       const data = await res.json();
+      console.log('Audit API Response:', data);
+
+      if (!data.clientId) {
+        throw new Error('API returned success but missing clientId');
+      }
+
       router.push(`/report/${data.clientId}`);
-    } else {
+    } catch (error) {
+      console.error('Form submission failed:', error);
       setLoading(false);
-      alert('Something went wrong. Please try again.');
+      alert('Something went wrong. Check browser console for details.');
     }
   };
 

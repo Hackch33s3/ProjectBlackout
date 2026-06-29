@@ -9,8 +9,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Server config error' }, { status: 500 });
   }
 
-  const supabase = createClient(supabaseUrl, supabaseKey);
-  
   // 1. Parse and log the incoming data
   let body;
   try {
@@ -30,15 +28,11 @@ export async function POST(req: Request) {
   if (!pastCity) return NextResponse.json({ error: 'Missing pastCity' }, { status: 400 });
   if (!email) return NextResponse.json({ error: 'Missing email' }, { status: 400 });
 
+  // 3. Initialize Supabase exactly once
   const supabase = createClient(supabaseUrl, supabaseKey);
-  const { fullName, pastCity, email } = await req.json();
-
-  if (!fullName || !pastCity || !email) {
-    return NextResponse.json({ error: 'Missing data' }, { status: 400 });
-  }
 
   try {
-    // 1. Create lead in Supabase
+    // 4. Create lead in Supabase
     const { data: client, error: clientError } = await supabase
       .from('clients')
       .insert([{ 
@@ -55,7 +49,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Database error' }, { status: 500 });
     }
 
-    // 2. Add to the scan queue (DO NOT call the engine yet)
+    // 5. Add to the scan queue
     const { error: queueError } = await supabase
       .from('scan_queue')
       .insert([{ client_id: client.id, status: 'PENDING' }]);
@@ -64,7 +58,7 @@ export async function POST(req: Request) {
       console.error('Queue insert error:', queueError);
     }
 
-    // 3. Return immediately so the user gets instant feedback
+    // 6. Return immediately
     return NextResponse.json({ success: true, clientId: client.id });
   } catch (err) {
     console.error('Audit error:', err);

@@ -10,16 +10,20 @@ export default function Home() {
   const [pastCity, setPastCity] = useState('');
   const [email, setEmail] = useState('');
 
-    const handleSubmit = async (e: React.FormEvent) => {
+     const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    const payload = { fullName, pastCity, email };
+    console.log('Frontend sending payload:', payload);
 
     try {
       const res = await fetch('/api/audit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fullName, pastCity, email }),
+        body: JSON.stringify(payload),
       });
+// ... rest of the function remains the same
 
       if (!res.ok) {
         throw new Error(`HTTP error! status: ${res.status}`);

@@ -10,6 +10,27 @@ export async function POST(req: Request) {
   }
 
   const supabase = createClient(supabaseUrl, supabaseKey);
+  
+  // 1. Parse and log the incoming data
+  let body;
+  try {
+    body = await req.json();
+  } catch (err) {
+    console.error('Failed to parse JSON body:', err);
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
+
+  console.log('--- INCOMING AUDIT PAYLOAD ---');
+  console.log(body);
+
+  const { fullName, pastCity, email } = body;
+
+  // 2. Check each field individually
+  if (!fullName) return NextResponse.json({ error: 'Missing fullName' }, { status: 400 });
+  if (!pastCity) return NextResponse.json({ error: 'Missing pastCity' }, { status: 400 });
+  if (!email) return NextResponse.json({ error: 'Missing email' }, { status: 400 });
+
+  const supabase = createClient(supabaseUrl, supabaseKey);
   const { fullName, pastCity, email } = await req.json();
 
   if (!fullName || !pastCity || !email) {

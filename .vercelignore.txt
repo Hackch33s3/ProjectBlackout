@@ -1,0 +1,9 @@
+main.py
+scanner.py
+proxy_manager.py
+requirements.txt
+Dockerfile
+.env
+__pycache__/
+*.pyc
+queue_worker.py

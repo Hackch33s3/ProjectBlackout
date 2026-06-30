@@ -15,7 +15,6 @@ export default function Home() {
     setLoading(true);
 
     const payload = { fullName, pastCity, email };
-    console.log('Frontend sending payload:', payload);
 
     try {
       const res = await fetch('/api/audit', {
@@ -30,7 +29,6 @@ export default function Home() {
       }
 
       const data = await res.json();
-      console.log('Audit API Response:', data);
 
       if (!data.clientId) {
         throw new Error('API returned success but missing clientId');

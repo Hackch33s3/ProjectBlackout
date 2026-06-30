@@ -3,6 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 
+const ERASURE_PRICE = process.env.NEXT_PUBLIC_ERASURE_PRICE || '$489 CAD';
+const MONITORING_PRICE = process.env.NEXT_PUBLIC_MONITORING_PRICE || '$28 CAD/month';
+
 export default function ReportPage() {
   const { id } = useParams();
   const [status, setStatus] = useState('SCANNING');
@@ -70,14 +73,14 @@ export default function ReportPage() {
         <div className="bg-gradient-to-r from-red-900/20 to-slate-800 border border-red-900/50 p-8 rounded-xl text-center">
           <h2 className="text-3xl font-bold mb-4">Erase These Profiles Now.</h2>
           <p className="text-slate-300 mb-8 max-w-2xl mx-auto">
-            For <strong>$489 CAD</strong> we will approach these brokers, armed with the tools to and knowledge to force the removal of your data from their servers while you focus on the things that matter. 
-            Includes <strong>$28 CAD/month</strong> continuous monitoring to ensure they don't reappear.
+            For <strong>{ERASURE_PRICE}</strong> we will approach these brokers, armed with the tools to and knowledge to force the removal of your data from their servers while you focus on the things that matter. 
+            Includes <strong>{MONITORING_PRICE}</strong> continuous monitoring to ensure they don't reappear.
           </p>
           <a 
             href="/api/checkout" 
             className="inline-block bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold py-4 px-10 rounded-lg text-xl transition-all transform hover:scale-105 shadow-lg"
           >
-            Initiate Full Erasure - $500 CAD
+            Initiate Full Erasure - {ERASURE_PRICE}
           </a>
           <p className="text-xs text-slate-500 mt-4">Secure checkout via Stripe. Cancel monitoring anytime.</p>
         </div>

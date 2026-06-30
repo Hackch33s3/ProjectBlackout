@@ -46,9 +46,21 @@ next-env.d.ts
 *.pyc
 *.pyo
 
+Casa
+Casa.pub
+
 # archived paths (kept out of repo; the live copies live in ../ProjectBlackout_archive)
 /PBE
 /Rollbacks
 /.agents
 /prism.schema
 /project-blackout-web
+
+
+
+node_modules/
+.next/
+.env
+__pycache__/
+*.pyc
+venv/

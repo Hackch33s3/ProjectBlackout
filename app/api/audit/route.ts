@@ -9,7 +9,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Server config error' }, { status: 500 });
   }
 
-  // 1. Parse and log the incoming data
   let body;
   try {
     body = await req.json();
@@ -17,9 +16,6 @@ export async function POST(req: Request) {
     console.error('Failed to parse JSON body:', err);
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
-
-  console.log('--- INCOMING AUDIT PAYLOAD ---');
-  console.log(body);
 
   const { fullName, pastCity, email } = body;
 
@@ -56,9 +52,9 @@ export async function POST(req: Request) {
 
     if (queueError) {
       console.error('Queue insert error:', queueError);
+      return NextResponse.json({ error: 'Queue insert failed' }, { status: 500 });
     }
 
-    // 6. Return immediately
     return NextResponse.json({ success: true, clientId: client.id });
   } catch (err) {
     console.error('Audit error:', err);

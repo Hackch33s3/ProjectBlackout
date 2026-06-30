@@ -1,11 +1,7 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
-import type { Client } from '@/app/lib/supabase-types';
 
-// Lazy getters: building a Next.js app runs the route module during static
-// analysis to introspect it, so env vars may not be set at that point. We
-// only need them when an actual request arrives.
 let _stripe: Stripe | null = null;
 let _supabase: ReturnType<typeof createClient> | null = null;
 
@@ -72,8 +68,7 @@ export async function POST(req: Request) {
     }
 
     try {
-      const { error } = await supabase
-        .from('clients')
+      const { error } = await (supabase.from('clients') as any)
         .upsert(
           {
             email: customerEmail,
@@ -107,8 +102,7 @@ export async function POST(req: Request) {
     }
 
     try {
-      const { data: client, error: updateError } = await supabase
-        .from('clients')
+      const { data: client, error: updateError } = await (supabase.from('clients') as any)
         .update({ status: 'ACTIVE_MONITORING' })
         .eq('stripe_customer_id', stripeCustomerId)
         .select()
@@ -121,8 +115,7 @@ export async function POST(req: Request) {
 
       console.log(`[+] Client activated: ${client.email}`);
 
-      const { data: clientData, error: fetchError } = await supabase
-        .from('clients')
+      const { data: clientData, error: fetchError } = await (supabase.from('clients') as any)
         .select('full_name, past_city')
         .eq('id', client.id)
         .single();
@@ -176,8 +169,7 @@ export async function POST(req: Request) {
     }
 
     try {
-      const { data: client, error } = await supabase
-        .from('clients')
+      const { data: client, error } = await (supabase.from('clients') as any)
         .update({ status: 'SUSPENDED' })
         .eq('stripe_customer_id', stripeCustomerId)
         .select()
@@ -230,8 +222,7 @@ export async function POST(req: Request) {
     }
 
     try {
-      const { data: client, error } = await supabase
-        .from('clients')
+      const { data: client, error } = await (supabase.from('clients') as any)
         .update({ status: 'CHURNED' })
         .eq('stripe_customer_id', stripeCustomerId)
         .select()

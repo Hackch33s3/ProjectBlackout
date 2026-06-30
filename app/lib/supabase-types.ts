@@ -4,6 +4,7 @@ export type ClientStatus =
   | 'PENDING_ONBOARDING'
   | 'PENDING_AUDIT'
   | 'SCANNING'
+  | 'AUDIT_COMPLETE'
   | 'ACTIVE_MONITORING'
   | 'SUSPENDED'
   | 'CHURNED'

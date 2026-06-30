@@ -16,6 +16,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Project Blackout",
   description: "Secure your digital identity",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({

@@ -22,7 +22,7 @@ async function handleCheckout() {
           quantity: 1,
         },
       ],
-      mode: 'subscription',
+      mode: 'payment',
       success_url: `${baseUrl}/success`,
       cancel_url: `${baseUrl}/cancel`,
     });

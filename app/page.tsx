@@ -9,10 +9,12 @@ export default function Home() {
   const [fullName, setFullName] = useState('');
   const [pastCity, setPastCity] = useState('');
   const [email, setEmail] = useState('');
+  const [error, setError] = useState('');
 
-     const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
 
     const payload = { fullName, pastCity, email };
 
@@ -22,76 +24,134 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-// ... rest of the function remains the same
 
+      if (res.status === 409) {
+        setError("You've already started a scan with this email — check your inbox for your report link.");
+        setLoading(false);
+        return;
+      }
       if (!res.ok) {
         throw new Error(`HTTP error! status: ${res.status}`);
       }
 
       const data = await res.json();
-
       if (!data.clientId) {
         throw new Error('API returned success but missing clientId');
       }
 
       router.push(`/report/${data.clientId}`);
-    } catch (error) {
-      console.error('Form submission failed:', error);
+    } catch (err) {
+      console.error('Form submission failed:', err);
+      setError('Something went wrong. Please try again.');
       setLoading(false);
-      alert('Something went wrong. Check browser console for details.');
     }
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
-      <section className="container mx-auto px-4 py-20">
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-            See Exactly What Strangers Know About You.
-          </h1>
-          <p className="text-xl md:text-2xl text-slate-300 mb-8">
-            Data brokers are selling your home address, phone number, and family members to anyone with $10. 
-            Find out exactly what they have on you. Free. Instantly.
-          </p>
-          
-          <form onSubmit={handleSubmit} className="max-w-md mx-auto bg-slate-800/50 backdrop-blur-sm p-8 rounded-xl border border-slate-700 space-y-4 text-left">
+    <main className="min-h-screen bg-[#F7F6F3] text-[#1A1A1A] antialiased">
+      {/* Top bar */}
+      <header className="max-w-3xl mx-auto px-6 pt-8 pb-6 flex items-center justify-between">
+        <span className="text-sm font-semibold tracking-[0.18em] uppercase text-[#1A1A1A]">
+          Project Blackout
+        </span>
+        <a href="/privacy" className="text-xs tracking-wide text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors">
+          Privacy
+        </a>
+      </header>
+
+      <div className="max-w-3xl mx-auto px-6">
+        <hr className="border-0 border-t border-[#E2E0DB]" />
+      </div>
+
+      {/* Hero */}
+      <section className="max-w-3xl mx-auto px-6 pt-16 pb-14 text-center">
+        <p className="text-xs tracking-[0.22em] uppercase text-[#8A8A8A] mb-5">
+          Data Broker Removal
+        </p>
+        <h1 className="text-4xl sm:text-5xl font-semibold leading-[1.1] tracking-tight text-[#1A1A1A] mb-5">
+          See who is holding your personal data.
+        </h1>
+        <p className="text-base sm:text-lg text-[#6B6B6B] max-w-xl mx-auto leading-relaxed">
+          We scan the major data brokers that index and trade your information,
+          then give you a clear path to remove it.
+        </p>
+      </section>
+
+      <div className="max-w-3xl mx-auto px-6">
+        <hr className="border-0 border-t border-[#E2E0DB]" />
+      </div>
+
+      {/* Form */}
+      <section className="max-w-md mx-auto px-6 pt-12 pb-20">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium tracking-wide text-[#6B6B6B] uppercase mb-1.5">
+              Full Legal Name
+            </label>
             <input
               type="text"
-              placeholder="Full Legal Name"
+              placeholder="Jane Doe"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               required
-              className="w-full p-3 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
+              className="w-full px-3.5 py-3 bg-white border border-[#E2E0DB] rounded-md text-[#1A1A1A] placeholder:text-[#B5B2AB] focus:outline-none focus:border-[#1A1A1A] focus:ring-1 focus:ring-[#1A1A1A] transition-colors"
             />
+          </div>
+          <div>
+            <label className="block text-xs font-medium tracking-wide text-[#6B6B6B] uppercase mb-1.5">
+              Past City
+            </label>
             <input
               type="text"
-              placeholder="Past City (e.g., Toronto, ON)"
+              placeholder="Toronto, ON"
               value={pastCity}
               onChange={(e) => setPastCity(e.target.value)}
               required
-              className="w-full p-3 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
+              className="w-full px-3.5 py-3 bg-white border border-[#E2E0DB] rounded-md text-[#1A1A1A] placeholder:text-[#B5B2AB] focus:outline-none focus:border-[#1A1A1A] focus:ring-1 focus:ring-[#1A1A1A] transition-colors"
             />
+          </div>
+          <div>
+            <label className="block text-xs font-medium tracking-wide text-[#6B6B6B] uppercase mb-1.5">
+              Email Address
+            </label>
             <input
               type="email"
-              placeholder="Email Address (to send your report)"
+              placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full p-3 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
+              className="w-full px-3.5 py-3 bg-white border border-[#E2E0DB] rounded-md text-[#1A1A1A] placeholder:text-[#B5B2AB] focus:outline-none focus:border-[#1A1A1A] focus:ring-1 focus:ring-[#1A1A1A] transition-colors"
             />
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition-all transform hover:scale-105 shadow-lg disabled:opacity-50"
-            >
-              {loading ? 'Scanning...' : 'Get My Free Exposure Report'}
-            </button>
-            <p className="text-xs text-slate-500 text-center">
-              User data is handled under our strict non-retention framework. See how it works <a href="/privacy" className="text-blue-400 hover:underline">HERE</a>.
-            </p>
-          </form>
-        </div>
+          </div>
+
+          {error && (
+            <p className="text-sm text-[#9A2B2B] leading-snug">{error}</p>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-[#1A1A1A] hover:bg-black text-white font-medium py-3.5 px-8 rounded-md text-sm tracking-wide transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Scanning…' : 'Get My Free Exposure Report'}
+          </button>
+
+          <p className="text-xs text-[#8A8A8A] text-center leading-relaxed pt-1">
+            Free scan covers 5 major brokers. Full report unlocks after purchase.
+            We do not retain your data beyond what removal requires.
+          </p>
+        </form>
       </section>
+
+      <div className="max-w-3xl mx-auto px-6">
+        <hr className="border-0 border-t border-[#E2E0DB]" />
+      </div>
+
+      {/* Footer note */}
+      <footer className="max-w-3xl mx-auto px-6 py-8 flex items-center justify-between text-xs text-[#8A8A8A]">
+        <span>© {new Date().getFullYear()} Project Blackout</span>
+        <span className="tracking-wide">Privacy-first · No resale</span>
+      </footer>
     </main>
   );
 }

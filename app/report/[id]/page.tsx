@@ -1,88 +1,161 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 
-const ERASURE_PRICE = process.env.NEXT_PUBLIC_ERASURE_PRICE || '$489 CAD';
-const MONITORING_PRICE = process.env.NEXT_PUBLIC_MONITORING_PRICE || '$28 CAD/month';
+type Target = {
+  broker_name: string;
+  profile_url: string;
+  status: string;
+};
+
+type Report = {
+  status: string;
+  fullName?: string;
+  targets: Target[];
+};
+
+// Redact the personal profile link: keep the broker domain, drop the
+// path that points at the individual's record. PII never rendered.
+function redactUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    return u.hostname.replace(/^www\./, '');
+  } catch {
+    return url.split('/')[2]?.replace(/^www\./, '') || 'broker site';
+  }
+}
 
 export default function ReportPage() {
-  const { id } = useParams();
-  const [status, setStatus] = useState('SCANNING');
-  interface Target { broker_name: string; profile_url: string; status: string; };
-  const [targets, setTargets] = useState<Target[]>([]);
-  const [fullName, setFullName] = useState('');
+  const params = useParams<{ id: string }>();
+  const id = params?.id as string;
+
+  const [report, setReport] = useState<Report | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [polling, setPolling] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/report/${id}`, { cache: 'no-store' });
+      if (!res.ok) {
+        if (res.status === 404) setError('Report not found.');
+        else setError('Failed to load report.');
+        setLoading(false);
+        return;
+      }
+      const data = await res.json();
+      setReport(data);
+      setLoading(false);
+      // Keep polling while the scan is still running.
+      if (data.status !== 'AUDIT_COMPLETE' && data.status !== 'ACTIVE_MONITORING') {
+        setPolling(true);
+      } else {
+        setPolling(false);
+      }
+    } catch {
+      setError('Network error loading report.');
+      setLoading(false);
+    }
+  }, [id]);
 
   useEffect(() => {
     if (!id) return;
+    load();
+    const t = setInterval(() => {
+      setPolling((p) => {
+        if (p) load();
+        return p;
+      });
+    }, 5000);
+    return () => clearInterval(t);
+  }, [id, load]);
 
-    const fetchReport = async () => {
-      const res = await fetch(`/api/report/${id}`);
-      if (res.ok) {
-        const data = await res.json();
-        setFullName(data.fullName);
-        setTargets(data.targets);
-        setStatus(data.status);
-      }
-    };
-
-    fetchReport();
-    const interval = setInterval(fetchReport, 4000); // Poll every 4 seconds
-    return () => clearInterval(interval);
-  }, [id]);
-
-  if (status === 'PENDING_AUDIT' || status === 'SCANNING') {
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white p-4">
+      <div className="min-h-screen bg-[#0a0a0a] text-gray-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mx-auto mb-6"></div>
-          <h1 className="text-3xl font-bold mb-4">Hunting Your Digital Footprint...</h1>
-          <p className="text-slate-400">Scanning 50+ data brokers for {fullName}. This takes about 60 seconds.</p>
+          <div className="w-10 h-10 mx-auto mb-4 border-2 border-gray-600 border-t-gray-200 rounded-full animate-spin" />
+          <p className="text-gray-400 text-sm">Scanning data brokers…</p>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-slate-900 text-white p-4 py-20">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold mb-2 text-center text-red-500">We Found Your Data.</h1>
-        <p className="text-center text-slate-400 mb-12">
-          The following profiles were found publicly available. 
-        </p>
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] text-gray-100 flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-[#111] border border-gray-800 rounded-xl p-8 text-center">
+          <h1 className="text-xl font-semibold mb-2">Something went wrong</h1>
+          <p className="text-gray-400 text-sm">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
-        <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden mb-12">
-          <div className="grid grid-cols-3 bg-slate-900/50 p-4 border-b border-slate-700 font-bold text-slate-300">
-            <div>Broker</div>
-            <div>Profile URL</div>
-            <div className="text-right">Status</div>
+  const targets = report?.targets || [];
+  const isComplete = report?.status === 'AUDIT_COMPLETE' || report?.status === 'ACTIVE_MONITORING';
+
+  return (
+    <div className="min-h-screen bg-[#0a0a0a] text-gray-100 flex items-center justify-center p-4 sm:p-6">
+      <div className="max-w-lg w-full bg-[#111] border border-gray-800 rounded-xl overflow-hidden shadow-2xl">
+        <div className="p-6 sm:p-8 border-b border-gray-800">
+          <div className="flex items-center justify-between mb-6">
+            <span className="text-[10px] font-mono tracking-[0.2em] text-gray-500 uppercase">Project Blackout</span>
+            <span className="text-[10px] font-mono text-gray-600">REF: {id.slice(0, 8).toUpperCase()}</span>
           </div>
-          {targets.length === 0 ? (
-            <div className="p-8 text-center text-slate-500">No targets found in database yet. The engine is still running.</div>
-          ) : (
-            targets.map((target, idx) => (
-              <div key={idx} className="grid grid-cols-3 p-4 border-b border-slate-700/50 last:border-0 items-center">
-                <div className="font-medium">{target.broker_name}</div>
-                <div className="text-blue-400 truncate text-sm">{target.profile_url}</div>
-                <div className="text-right text-yellow-400 text-sm font-bold">EXPOSED</div>
-              </div>
-            ))
-          )}
+          <h1 className="text-2xl font-bold tracking-tight text-white mb-2">
+            {isComplete ? 'Scan Complete' : 'Scan in progress…'}
+          </h1>
+          <p className="text-gray-400 text-sm leading-relaxed">
+            {isComplete
+              ? 'We mapped your digital footprint across major data brokers. Your information is currently exposed, indexed, and being traded.'
+              : 'We are searching data brokers for your records. This page updates automatically — no need to refresh.'}
+          </p>
         </div>
 
-        <div className="bg-gradient-to-r from-red-900/20 to-slate-800 border border-red-900/50 p-8 rounded-xl text-center">
-          <h2 className="text-3xl font-bold mb-4">Erase These Profiles Now.</h2>
-          <p className="text-slate-300 mb-8 max-w-2xl mx-auto">
-            For <strong>{ERASURE_PRICE}</strong> we will approach these brokers, armed with the tools to and knowledge to force the removal of your data from their servers while you focus on the things that matter. 
-            Includes <strong>{MONITORING_PRICE}</strong> continuous monitoring to ensure they don't reappear.
-          </p>
-          <a 
-            href="/api/checkout" 
-            className="inline-block bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold py-4 px-10 rounded-lg text-xl transition-all transform hover:scale-105 shadow-lg"
-          >
-            Initiate Full Erasure - {ERASURE_PRICE}
-          </a>
-          <p className="text-xs text-slate-500 mt-4">Secure checkout via Stripe. Cancel monitoring anytime.</p>
+        <div className="p-6 sm:p-8 space-y-6">
+          {/* Redacted broker list — shows WHO has you, never the link to your record */}
+          <div>
+            <h2 className="text-lg font-medium text-white mb-3">
+              {isComplete ? 'Brokers found holding your data' : 'Brokers detected so far'}
+            </h2>
+            {targets.length === 0 ? (
+              <p className="text-gray-500 text-sm">No exposures detected yet.</p>
+            ) : (
+              <ul className="space-y-2">
+                {targets.map((t, i) => (
+                  <li
+                    key={i}
+                    className="flex items-center justify-between bg-[#0f0f0f] border border-gray-800 rounded-lg px-4 py-3"
+                  >
+                    <span className="text-sm text-gray-200">{t.broker_name}</span>
+                    <span className="text-[10px] font-mono text-gray-600">{redactUrl(t.profile_url)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Paywall CTA */}
+          <div className="relative pt-2">
+            <div className="absolute -top-2 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-700 to-transparent" />
+            <h2 className="text-lg font-medium text-white mb-2">Get the full list and detailed opt-out instructions here</h2>
+            <p className="text-gray-400 text-sm leading-relaxed mb-4">
+              The free scan shows a sample of brokers. Unlock your complete exposure report —
+              all {targets.length > 0 ? targets.length : 5}+ brokers detected — plus step-by-step
+              removal instructions tailored to your exact footprint. One-time purchase. No subscription.
+            </p>
+            <button
+              onClick={() => { window.location.href = '/api/checkout'; }}
+              className="w-full bg-white text-black font-semibold py-3 rounded-lg text-sm hover:bg-gray-200 transition-all flex items-center justify-center"
+            >
+              Only $19.00
+            </button>
+            <p className="text-[10px] text-gray-500 mt-3 text-center uppercase tracking-wider">
+              Encrypted & secure · Your data stays yours
+            </p>
+          </div>
         </div>
       </div>
     </div>

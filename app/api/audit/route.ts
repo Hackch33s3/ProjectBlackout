@@ -23,7 +23,6 @@ export async function POST(req: Request) {
   if (!fullName) return NextResponse.json({ error: 'Missing fullName' }, { status: 400 });
   if (!pastCity) return NextResponse.json({ error: 'Missing pastCity' }, { status: 400 });
   if (!email) return NextResponse.json({ error: 'Missing email' }, { status: 400 });
-
   // 3. Initialize Supabase exactly once
   const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -31,24 +30,46 @@ export async function POST(req: Request) {
     // 4. Create lead in Supabase
     const { data: client, error: clientError } = await supabase
       .from('clients')
-      .insert([{ 
-        email, 
-        full_name: fullName, 
-        past_city: pastCity, 
-        status: 'PENDING_AUDIT' 
-      }])
+      .insert([
+        {
+          email,
+          full_name: fullName,
+          past_city: pastCity,
+          status: 'PENDING_AUDIT',
+        },
+      ])
       .select()
       .single();
 
-    if (clientError || !client) {
+    // Duplicate email -> Supabase returns a unique_violation (23505).
+    // Don't 500 — tell the user they already have a scan queued.
+    if (clientError) {
+      if (
+        (clientError.code === '23505') ||
+        /duplicate|unique/i.test(clientError.message || '')
+      ) {
+        return NextResponse.json(
+          {
+            error: 'ALREADY_SCANNED',
+            message:
+              "You've already started a scan with this email. Check your inbox for your report link.",
+          },
+          { status: 409 },
+        );
+      }
       console.error('Supabase insert error:', clientError);
       return NextResponse.json({ error: 'Database error' }, { status: 500 });
     }
 
-    // 5. Add to the scan queue
+    if (!client) {
+      return NextResponse.json({ error: 'Database error' }, { status: 500 });
+    }
+
+    // 5. Add to the scan queue — FREE teaser tier (5 brokers only).
+    //    The full 19-broker + CA scan is triggered post-payment.
     const { error: queueError } = await supabase
       .from('scan_queue')
-      .insert([{ client_id: client.id, status: 'PENDING' }]);
+      .insert([{ client_id: client.id, status: 'PENDING', scan_tier: 'free' }]);
 
     if (queueError) {
       console.error('Queue insert error:', queueError);

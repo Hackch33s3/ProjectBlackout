@@ -175,8 +175,7 @@ export default function ReportPage() {
               <div className="absolute -top-2 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-800 to-transparent" />
               <div className="pb-progress mb-4" />
               <p className="text-gray-500 text-sm leading-relaxed text-center">
-                Your redacted results will appear here. Once we&apos;ve mapped your exposure,
-                you&apos;ll see the full report and the $19 unlock.
+                Your results will appear here.
               </p>
             </div>
           )}

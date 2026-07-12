@@ -26,23 +26,45 @@ export default function Home() {
       });
 
       if (res.status === 409) {
-        setError("You've already started a scan with this email — check your inbox for your report link.");
+        let msg = "You've already started a scan with this email — check your inbox for your report link.";
+        try {
+          const d = await res.json();
+          if (d?.message) msg = d.message;
+        } catch {
+          /* keep default */
+        }
+        setError(msg);
         setLoading(false);
         return;
       }
+
       if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
+        // Surface the real server error instead of a generic catch-all.
+        let detail = '';
+        try {
+          const d = await res.json();
+          detail = d?.error || d?.message || '';
+        } catch {
+          /* non-JSON error body */
+        }
+        console.error('Audit request failed:', res.status, detail);
+        setError(detail || `Submission failed (${res.status}). Please try again.`);
+        setLoading(false);
+        return;
       }
 
       const data = await res.json();
       if (!data.clientId) {
-        throw new Error('API returned success but missing clientId');
+        setError('Submission succeeded but no report was created. Please try again.');
+        setLoading(false);
+        return;
       }
 
       router.push(`/report/${data.clientId}`);
     } catch (err) {
       console.error('Form submission failed:', err);
-      setError('Something went wrong. Please try again.');
+      // Don't hide network/runtime errors behind a hardcoded string.
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
       setLoading(false);
     }
   };

@@ -67,13 +67,15 @@ export async function POST(req: Request) {
 
     // 5. Add to the scan queue — FREE teaser tier (5 brokers only).
     //    The full 19-broker + CA scan is triggered post-payment.
+    //    NOTE: a queue insert failure must NOT abort the signup. The client
+    //    lead already exists; the worker can recover a missing queue row.
+    //    So we log the error but still return the clientId to the user.
     const { error: queueError } = await supabase
       .from('scan_queue')
       .insert([{ client_id: client.id, status: 'PENDING', scan_tier: 'free' }]);
 
     if (queueError) {
-      console.error('Queue insert error:', queueError);
-      return NextResponse.json({ error: 'Queue insert failed' }, { status: 500 });
+      console.error('Queue insert error (non-fatal, lead preserved):', queueError);
     }
 
     return NextResponse.json({ success: true, clientId: client.id });

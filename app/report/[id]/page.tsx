@@ -28,6 +28,22 @@ function redactUrl(url: string): string {
 
 const COMPLETE = new Set(['AUDIT_COMPLETE', 'ACTIVE_MONITORING']);
 
+// Human copy mapped from the live client status. The API exposes no real
+// progress %, so we describe the phase truthfully rather than fake a number.
+function statusCopy(status?: string): string {
+  switch (status) {
+    case 'PENDING_AUDIT':
+      return 'Submitting your request to the scan engine…';
+    case 'SCANNING':
+      return 'Searching data brokers for your records as we speak…';
+    case 'AUDIT_COMPLETE':
+    case 'ACTIVE_MONITORING':
+      return 'Compiling your exposure report…';
+    default:
+      return 'Searching for your info as we speak…';
+  }
+}
+
 export default function ReportPage() {
   const params = useParams<{ id: string }>();
   const id = params?.id as string;
@@ -69,10 +85,11 @@ export default function ReportPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] text-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-10 h-10 mx-auto mb-4 border-2 border-gray-600 border-t-gray-200 rounded-full animate-spin" />
-          <p className="text-gray-400 text-sm">Scanning data brokers…</p>
+      <div className="min-h-screen bg-[#0a0a0a] text-gray-100 flex items-center justify-center p-6">
+        <div className="w-full max-w-sm text-center">
+          <div className="pb-progress mb-5" />
+          <p className="text-gray-300 text-sm">Searching for your info as we speak…</p>
+          <p className="text-gray-600 text-xs mt-2">This page updates automatically — no need to refresh.</p>
         </div>
       </div>
     );
@@ -106,7 +123,7 @@ export default function ReportPage() {
           <p className="text-gray-400 text-sm leading-relaxed">
             {isComplete
               ? 'We mapped your digital footprint across major data brokers. Your information is currently exposed, indexed, and being traded.'
-              : 'We are searching data brokers for your records. This page updates automatically — no need to refresh.'}
+              : statusCopy(report?.status)}
           </p>
         </div>
 
@@ -133,25 +150,36 @@ export default function ReportPage() {
             )}
           </div>
 
-          {/* Paywall CTA */}
-          <div className="relative pt-2">
-            <div className="absolute -top-2 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-700 to-transparent" />
-            <h2 className="text-lg font-medium text-white mb-2">Get the full list and detailed opt-out instructions here</h2>
-            <p className="text-gray-400 text-sm leading-relaxed mb-4">
-              The free scan shows a sample of brokers. Unlock your complete exposure report —
-              all {targets.length > 0 ? targets.length : 5}+ brokers detected — plus step-by-step
-              removal instructions tailored to your exact footprint. One-time purchase. No subscription.
-            </p>
-            <button
-              onClick={() => { window.location.href = '/api/checkout'; }}
-              className="w-full bg-white text-black font-semibold py-3 rounded-lg text-sm hover:bg-gray-200 transition-all flex items-center justify-center"
-            >
-              Only $19.00
-            </button>
-            <p className="text-[10px] text-gray-500 mt-3 text-center uppercase tracking-wider">
-              Encrypted & secure · Your data stays yours
-            </p>
-          </div>
+          {/* Paywall CTA — only shown once the redacted results are in */}
+          {isComplete ? (
+            <div className="relative pt-2">
+              <div className="absolute -top-2 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-700 to-transparent" />
+              <h2 className="text-lg font-medium text-white mb-2">Get the full list and detailed opt-out instructions here</h2>
+              <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                The free scan shows a sample of brokers. Unlock your complete exposure report —
+                all {targets.length > 0 ? targets.length : 5}+ brokers detected — plus step-by-step
+                removal instructions tailored to your exact footprint. One-time purchase. No subscription.
+              </p>
+              <button
+                onClick={() => { window.location.href = '/api/checkout'; }}
+                className="w-full bg-white text-black font-semibold py-3 rounded-lg text-sm hover:bg-gray-200 transition-all flex items-center justify-center"
+              >
+                Only $19.00
+              </button>
+              <p className="text-[10px] text-gray-500 mt-3 text-center uppercase tracking-wider">
+                Encrypted & secure · Your data stays yours
+              </p>
+            </div>
+          ) : (
+            <div className="relative pt-2">
+              <div className="absolute -top-2 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-800 to-transparent" />
+              <div className="pb-progress mb-4" />
+              <p className="text-gray-500 text-sm leading-relaxed text-center">
+                Your redacted results will appear here. Once we&apos;ve mapped your exposure,
+                you&apos;ll see the full report and the $19 unlock.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

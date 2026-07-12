@@ -17,3 +17,30 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Indeterminate progress bar for the scan waiting room.
+   No real % is available from the API, so this slides honestly
+   rather than faking a number. */
+@keyframes pb-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+.pb-progress {
+  position: relative;
+  height: 4px;
+  width: 100%;
+  background: #1a1a1a;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+.pb-progress::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 40%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, transparent, #ffffff, transparent);
+  animation: pb-slide 1.4s ease-in-out infinite;
+}

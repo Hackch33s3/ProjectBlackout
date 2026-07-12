@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
 
 type Target = {
@@ -26,6 +26,8 @@ function redactUrl(url: string): string {
   }
 }
 
+const COMPLETE = new Set(['AUDIT_COMPLETE', 'ACTIVE_MONITORING']);
+
 export default function ReportPage() {
   const params = useParams<{ id: string }>();
   const id = params?.id as string;
@@ -33,9 +35,10 @@ export default function ReportPage() {
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [polling, setPolling] = useState(false);
+  const doneRef = useRef(false);
 
   const load = useCallback(async () => {
+    if (doneRef.current) return;
     try {
       const res = await fetch(`/api/report/${id}`, { cache: 'no-store' });
       if (!res.ok) {
@@ -47,12 +50,7 @@ export default function ReportPage() {
       const data = await res.json();
       setReport(data);
       setLoading(false);
-      // Keep polling while the scan is still running.
-      if (data.status !== 'AUDIT_COMPLETE' && data.status !== 'ACTIVE_MONITORING') {
-        setPolling(true);
-      } else {
-        setPolling(false);
-      }
+      if (COMPLETE.has(data.status)) doneRef.current = true;
     } catch {
       setError('Network error loading report.');
       setLoading(false);
@@ -61,14 +59,12 @@ export default function ReportPage() {
 
   useEffect(() => {
     if (!id) return;
-    load();
-    const t = setInterval(() => {
-      setPolling((p) => {
-        if (p) load();
-        return p;
-      });
-    }, 5000);
-    return () => clearInterval(t);
+    const t0 = setTimeout(load, 0); // defer first fetch out of effect body
+    const iv = setInterval(load, 5000);
+    return () => {
+      clearTimeout(t0);
+      clearInterval(iv);
+    };
   }, [id, load]);
 
   if (loading) {

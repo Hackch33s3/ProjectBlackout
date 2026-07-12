@@ -87,6 +87,13 @@ export default function Home() {
 
       {/* Hero */}
       <section className="max-w-3xl mx-auto px-6 pt-16 pb-14 text-center">
+        <img
+          src="/sovereignty-labs-logo.png"
+          alt="Sovereignty Labs"
+          width={96}
+          height={96}
+          className="mx-auto mb-6 rounded-full"
+        />
         <p className="text-xs tracking-[0.22em] uppercase text-[#8A8A8A] mb-5">
           Data Broker Removal
         </p>

@@ -41,13 +41,11 @@ async function handleCheckout() {
     // Return the URL as JSON so the client can redirect and we can surface
     // any error cleanly instead of a blank 500 page.
     return NextResponse.json({ url: session.url });
-  } catch (err: any) {
+  } catch (err) {
     // Surface the real Stripe message so failures are diagnosable.
-    console.error('[checkout] Stripe error:', err?.message || err);
-    return NextResponse.json(
-      { error: err?.message || 'Checkout failed.' },
-      { status: 500 },
-    );
+    const message = err instanceof Error ? err.message : 'Checkout failed.';
+    console.error('[checkout] Stripe error:', message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 

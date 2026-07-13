@@ -170,7 +170,7 @@ export default function ReportPage() {
                     } else {
                       alert('Checkout failed: ' + (data.error || 'unknown error'));
                     }
-                  } catch (e) {
+                  } catch {
                     alert('Checkout failed to start.');
                   }
                 }}

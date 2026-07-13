@@ -90,8 +90,8 @@ export default function Home() {
         <img
           src="/sovereignty-labs-logo.png"
           alt="Sovereignty Labs"
-          width={96}
-          height={96}
+          width={134}
+          height={134}
           className="mx-auto mb-6 rounded-full"
         />
         <p className="text-xs tracking-[0.22em] uppercase text-[#8A8A8A] mb-5">

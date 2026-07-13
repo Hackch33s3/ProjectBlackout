@@ -161,7 +161,19 @@ export default function ReportPage() {
                 removal instructions tailored to your exact footprint. One-time purchase. No subscription.
               </p>
               <button
-                onClick={() => { window.location.href = '/api/checkout'; }}
+                onClick={async () => {
+                  try {
+                    const res = await fetch('/api/checkout', { method: 'POST' });
+                    const data = await res.json();
+                    if (data.url) {
+                      window.location.href = data.url;
+                    } else {
+                      alert('Checkout failed: ' + (data.error || 'unknown error'));
+                    }
+                  } catch (e) {
+                    alert('Checkout failed to start.');
+                  }
+                }}
                 className="w-full bg-white text-black font-semibold py-3 rounded-lg text-sm hover:bg-gray-200 transition-all flex items-center justify-center"
               >
                 Only $19.00
